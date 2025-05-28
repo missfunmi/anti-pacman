@@ -1,30 +1,21 @@
-use crate::app::player::Player;
+use crate::app::player::Veggie;
 use rand::rng;
 use rand::seq::SliceRandom;
-
-pub struct Veggie {
-    pub avatar: String,
-    pub is_eaten: bool,
-    pub x: usize,
-    pub y: usize,
-}
 
 pub struct MazeCell {
     pub x: usize,
     pub y: usize,
     pub is_wall: bool,
-    pub has_player: bool,
-    pub has_pacperson: bool,
     pub has_veggie: bool,
 }
 
 pub struct MazeGrid {
     pub cells: Vec<Vec<MazeCell>>,
-    pub veggies: Vec<Veggie>,
+    pub veggies: Vec<Veggie>, // TODO refactor?
 }
 
-const BOARD_SIZE: usize = 640;
-const CELL_COUNT: usize = 8;
+pub const BOARD_SIZE: usize = 640;
+pub const CELL_COUNT: usize = 8;
 
 impl MazeGrid {
     pub fn get_cell(&self, x: usize, y: usize) -> &MazeCell {
@@ -38,71 +29,8 @@ impl MazeGrid {
             .unwrap()
     }
 
-    /*pub fn move_player(&mut self, from: (usize, usize), to: (usize, usize)) {
-            log!(Level::Info, "moving player");
-            let to_cell = self.get_cell_mut(to.0, to.1);
-
-            if !to_cell.is_wall {
-                to_cell.has_player = true;
-
-                let from_cell = self.get_cell_mut(from.0, from.1);
-                from_cell.has_player = false;
-            }
-        }
-    */
-
     pub fn in_bounds(&self, x: usize, y: usize) -> bool {
         x < self.cells[0].len() && y < self.cells.len()
-    }
-
-    pub fn move_player(&mut self, from: (usize, usize), to: (usize, usize)) {
-        let (fx, fy) = from;
-        let (tx, ty) = to;
-
-        if !self.in_bounds(fx, fy) || !self.in_bounds(tx, ty) {
-            return;
-        }
-
-        if from == to {
-            return;
-        }
-
-        // Case 1: moving in the same row
-        if fy == ty {
-            let row = &mut self.cells[fy];
-            if fx != tx {
-                // Split so we can get two mutable, non-overlapping references
-                let (first, second) = if fx < tx {
-                    let (first, second) = row.split_at_mut(tx);
-                    (&mut first[fx], &mut second[0])
-                } else {
-                    let (first, second) = row.split_at_mut(fx);
-                    (&mut second[0], &mut first[tx])
-                };
-
-                if !second.is_wall {
-                    first.has_player = false;
-                    second.has_player = true;
-                }
-            }
-        } else {
-            // Case 2: moving across rows (safe because they're in different rows)
-            let (from_row, to_row) = if fy < ty {
-                let (top, bottom) = self.cells.split_at_mut(ty);
-                (&mut top[fy], &mut bottom[0])
-            } else {
-                let (top, bottom) = self.cells.split_at_mut(fy);
-                (&mut bottom[0], &mut top[ty])
-            };
-
-            let from_cell = &mut from_row[fx];
-            let to_cell = &mut to_row[tx];
-
-            if !to_cell.is_wall {
-                from_cell.has_player = false;
-                to_cell.has_player = true;
-            }
-        }
     }
 
     pub fn init() -> Self {
@@ -113,8 +41,6 @@ impl MazeGrid {
                         x,
                         y,
                         is_wall: false,
-                        has_player: false,
-                        has_pacperson: false,
                         has_veggie: false,
                     })
                     .collect()
@@ -179,12 +105,6 @@ impl MazeGrid {
         grid.cells[7][6].is_wall = true;
         grid.cells[7][7].is_wall = true;
         grid
-    }
-
-    pub fn add_player(&mut self, player: &Player) -> &mut Self {
-        let cell = self.get_cell_mut(player.x, player.y);
-        cell.has_player = true;
-        self
     }
 
     pub fn walkable_cells(&self) -> Vec<(usize, usize)> {

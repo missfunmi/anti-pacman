@@ -1,26 +1,17 @@
 pub mod maze;
 pub mod player;
 
+use crate::app::maze::{BOARD_SIZE, CELL_COUNT};
+use crate::app::player::Movable;
 use maze::MazeGrid;
 use player::Player;
-use std::cell::RefCell;
-use std::rc::Rc;
-use log::{log, Level};
 use web_sys::wasm_bindgen::closure::Closure;
 use web_sys::wasm_bindgen::JsCast;
 use yew::prelude::*;
 
-const BOARD_SIZE: usize = 640;
-
 #[function_component(App)]
 pub fn app() -> Html {
     wasm_logger::init(wasm_logger::Config::default());
-    // let player: Player = Player {
-    //     avatar: "👻".to_string(),
-    //     x: 7,
-    //     y: 0,
-    //     speed: 0.0,
-    // };
 
     let maze_ref = use_mut_ref(|| {
         let mut maze = MazeGrid::init();
@@ -36,48 +27,25 @@ pub fn app() -> Html {
         speed: 0.0,
     });
     
-    let cell_size = BOARD_SIZE / 8;
-    // let mut maze = MazeGrid::init();
-    // maze.add_walls();
-    // maze.add_player(&player);
-    // maze.generate_veggies(5);
+    let cell_size = BOARD_SIZE/CELL_COUNT;
 
-    // let maze_ref = Rc::new(RefCell::new(maze));
-    // let player_ref = Rc::new(RefCell::new(player));
-
-    {
-        let maze_ref = maze_ref.clone();
-        let player_ref = player_ref.clone();
-        use_effect_with((), move |_| {
-            let mut maze = maze_ref.borrow_mut();
-            let player = player_ref.borrow();
-            maze.add_player(&player);
-            || {}
-        });
-    }
-    
     let redraw_trigger = use_state(|| 0);
-
     let maze_ref_clone = maze_ref.clone();
     let player_ref_clone = player_ref.clone();
     let redraw_trigger_clone = redraw_trigger.clone();
 
     let on_keydown = Callback::from(move |e: KeyboardEvent| {
-        let mut maze = maze_ref_clone.borrow_mut();
+        let maze = maze_ref_clone.borrow();
         let mut player = player_ref_clone.borrow_mut();
 
-        let (x, y) = (player.x, player.y);
-        let (new_x, new_y) = match e.key().as_str() {
-            "ArrowUp" | "w" => (x, y.saturating_sub(1)),
-            "ArrowDown" | "s" => (x, y + 1),
-            "ArrowLeft" | "a" => (x.saturating_sub(1), y),
-            "ArrowRight" | "d" => (x + 1, y),
+        match e.key().as_str() {
+            "ArrowUp" | "w" => player.try_move(0, -1, &maze),
+            "ArrowDown" | "s" => player.try_move(0, 1, &maze),
+            "ArrowLeft" | "a" => player.try_move(-1, 0, &maze),
+            "ArrowRight" | "d" => player.try_move(1, 0, &maze),
             _ => return,
-        };
+        }
 
-        maze.move_player((x, y), (new_x, new_y));
-        player.x = new_x;
-        player.y = new_y;
         redraw_trigger_clone.set(*redraw_trigger_clone + 1);
     });
 
@@ -105,17 +73,16 @@ pub fn app() -> Html {
             style={format!("position: relative; width: {}px; height: {}px;", BOARD_SIZE, BOARD_SIZE)}
         >
           <div class="maze">
-              { for maze.cells.iter().enumerate().map(|(y, row)| html! {
+              { for maze.cells.iter().enumerate().map(|(_, row)| html! {
                   <div class="row" style={format!("height: {}px;", cell_size)}>
                       {
-                          for row.iter().enumerate().map(|(x, cell)| {
-                            log!(Level::Info, "cell.has_player: {:?}", cell.has_player);
+                          for row.iter().enumerate().map(|(_, cell)| {
                             let class = if cell.is_wall { "wall" } else { "path" };
                             let has_veggie = maze.veggies.iter().any(|veggie| veggie.x == cell.x && veggie.y == cell.y && !veggie.is_eaten);
                             html! {
                               <div class={classes!("cell", class)} style={format!("width: {}px; height: {}px;", cell_size, cell_size)}>
                                 {
-                                    if cell.has_player {
+                                    if cell.x == player_ref.x && cell.y == player_ref.y {
                                         html! { <span id="player">{ &avatar }</span> } }
                                     else {
                                         html! {}
@@ -130,8 +97,7 @@ pub fn app() -> Html {
                                 }
                                 </div>
                             }
-                        }
-                      )
+                        })
                     }
                   </div>
               })}

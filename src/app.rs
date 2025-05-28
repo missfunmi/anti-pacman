@@ -1,5 +1,6 @@
 pub mod maze;
 pub mod player;
+pub mod levels;
 
 use crate::app::maze::{BOARD_SIZE, CELL_COUNT};
 use crate::app::player::Movable;
@@ -8,14 +9,14 @@ use player::Player;
 use web_sys::wasm_bindgen::closure::Closure;
 use web_sys::wasm_bindgen::JsCast;
 use yew::prelude::*;
+use crate::app::levels::LEVEL_1;
 
 #[function_component(App)]
 pub fn app() -> Html {
     wasm_logger::init(wasm_logger::Config::default());
 
     let maze_ref = use_mut_ref(|| {
-        let mut maze = MazeGrid::init();
-        maze.add_walls();
+        let mut maze = MazeGrid::from_str(LEVEL_1);
         maze.generate_veggies(5);
         maze
     });
@@ -26,7 +27,7 @@ pub fn app() -> Html {
         y: 0,
         speed: 0.0,
     });
-    
+
     let cell_size = BOARD_SIZE/CELL_COUNT;
 
     let redraw_trigger = use_state(|| 0);

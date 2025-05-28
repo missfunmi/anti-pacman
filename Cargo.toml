@@ -9,8 +9,9 @@ keywords = ["yew", "trunk"]
 categories = ["gui", "wasm", "web-programming"]
 
 [dependencies]
-rand = { version="0.9.1" }
-yew = { version="0.21", features=["csr"] }
+rand = { version = "0.9.1" }
+getrandom = { version = "0.3", features = ["wasm_js"] }
+yew = { version = "0.21", features = ["csr"] }
 wasm-logger = "0.2.0"
 log = "0.4.27"
 web-sys = "0.3.77"
